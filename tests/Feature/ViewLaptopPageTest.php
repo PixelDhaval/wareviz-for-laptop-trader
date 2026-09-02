@@ -10,7 +10,7 @@ use App\Models\User;
 use Livewire\Livewire;
 
 test('the view page loads and shows the laptop summary', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->superAdmin()->create();
     $this->actingAs($user);
 
     $laptop = Laptop::factory()->create(['status' => LaptopStatus::InStock]);
@@ -22,7 +22,7 @@ test('the view page loads and shows the laptop summary', function () {
 });
 
 test('sending a laptop for repair from the view page creates a job and hides the action', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->superAdmin()->create();
     $this->actingAs($user);
 
     $laptop = Laptop::factory()->create(['status' => LaptopStatus::InStock]);

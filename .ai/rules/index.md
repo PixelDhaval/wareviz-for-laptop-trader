@@ -6,5 +6,5 @@ Before planning or editing, find the row whose globs match the file's path and r
 | --- | --- |
 | app/Filament/** | .ai/rules/filament.md |
 | app/Filament/Imports/** | .ai/rules/imports.md |
-| app/Models/Laptop.php | .ai/rules/models.md |
+| app/Models/Laptop.php, app/Models/User.php | .ai/rules/models.md |
 | app/Filament/**/Tables/**,app/Filament/**/RelationManagers/** | .ai/rules/relation-managers.md |
