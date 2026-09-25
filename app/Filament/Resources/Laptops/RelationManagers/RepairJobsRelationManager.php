@@ -58,16 +58,10 @@ class RepairJobsRelationManager extends RelationManager
                     ->preload()
                     ->required(fn ($get) => JobAssignee::resolve($get('assignee')) === JobAssignee::Agency)
                     ->visible(fn ($get) => JobAssignee::resolve($get('assignee')) === JobAssignee::Agency),
-                RepairJobForm::expenseField(),
-                ToggleButtons::make('status')
-                    ->options(JobStatus::class)
-                    ->grouped()
-                    ->default(JobStatus::Pending)
-                    ->required()
-                    ->live(),
-                DatePicker::make('sent_at')
-                    ->label('Sent on')
-                    ->default(now()),
+                RepairJobForm::statusField(),
+                RepairJobForm::sentAtField(),
+                RepairJobForm::expenseField(costRequired: RepairJobForm::isBeingCompleted(...))
+                    ->visible(fn (?RepairJob $record, $get): bool => $record !== null && RepairJobForm::isBeingCompleted($get)),
                 DatePicker::make('completed_at')
                     ->label('Completed on')
                     ->visible(fn ($get) => JobStatus::resolve($get('status')) === JobStatus::Completed),

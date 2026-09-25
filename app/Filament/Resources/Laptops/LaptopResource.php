@@ -106,7 +106,8 @@ class LaptopResource extends Resource
     /**
      * Eager loads what Laptop::purchase_cost, repair_expense_total and
      * total_cost need (the shipment's laptop count, and every repair job's
-     * currency), so the table, view and edit pages don't N+1 per row.
+     * currency), plus the "Sold / Reserved to" column's sale and buyer, so
+     * the table, view and edit pages don't N+1 per row.
      */
     public static function getEloquentQuery(): Builder
     {
@@ -114,6 +115,7 @@ class LaptopResource extends Resource
             ->with([
                 'shipment' => fn (BelongsTo $query) => $query->withCount('laptops'),
                 'repairJobs.currency',
+                'saleItem.sale.buyer',
             ]);
     }
 }

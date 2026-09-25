@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\LaptopStatus;
 use App\Enums\SaleType;
 use App\Support\CodeGenerator;
 use App\Support\Money;
@@ -43,6 +44,31 @@ class Sale extends Model
             // sale_items.sale_id FK cascade, so SaleItem::deleted() fires for
             // every row and reverts each laptop's status back to in stock.
             $sale->saleItems->each->delete();
+        });
+
+        static::updated(function (Sale $sale): void {
+            if (! $sale->wasChanged('is_completed')) {
+                return;
+            }
+
+            // Draft -> completed moves every laptop still Reserved on this
+            // sale to Sold; completed -> draft (re-opening) moves them back.
+            // Only laptops currently Sold/Reserved are touched — one mid
+            // repair (InRepair) or marked Defective in the meantime is left
+            // alone; RepairJob::syncLaptopStatus() will apply the correct
+            // status via Laptop::saleContextStatus() once that job finishes.
+            $targetStatus = $sale->is_completed ? LaptopStatus::Sold : LaptopStatus::Reserved;
+
+            $sale->saleItems()
+                ->with('laptop')
+                ->get()
+                ->each(function (SaleItem $item) use ($targetStatus): void {
+                    $laptop = $item->laptop;
+
+                    if ($laptop && in_array($laptop->status, [LaptopStatus::Sold, LaptopStatus::Reserved], true)) {
+                        $laptop->update(['status' => $targetStatus]);
+                    }
+                });
         });
     }
 

@@ -69,7 +69,7 @@ class LaptopsTable
             ->label('Send for repair')
             ->icon(Heroicon::OutlinedWrenchScrewdriver)
             ->color('warning')
-            ->visible(fn (Laptop $record) => $record->activeRepairJob === null)
+            ->visible(fn (Laptop $record) => $record->activeRepairJob === null && $record->status !== LaptopStatus::Sold)
             ->modalHeading('Send for repair / repaint')
             ->modalSubmitActionLabel('Send')
             ->schema([
@@ -90,10 +90,7 @@ class LaptopsTable
                     ->searchable()
                     ->required(fn ($get) => JobAssignee::resolve($get('assignee')) === JobAssignee::Agency)
                     ->visible(fn ($get) => JobAssignee::resolve($get('assignee')) === JobAssignee::Agency),
-                RepairJobForm::expenseField(boundToRecord: false),
-                DatePicker::make('sent_at')
-                    ->label('Sent on')
-                    ->default(now()),
+                RepairJobForm::sentAtField(),
                 Textarea::make('notes')
                     ->columnSpanFull(),
             ])
@@ -123,6 +120,31 @@ class LaptopsTable
                     'price_exchange_rate' => $sale->exchange_rate,
                 ]);
 
+                $record->refresh();
+            });
+    }
+
+    /**
+     * Undoes addToSaleAction(): removes the laptop from whichever sale
+     * reserved it, reverting its status to in stock (see SaleItem's
+     * deleted() hook). Only offered while the laptop is Reserved (not yet
+     * Sold) on a sale that's still a draft — once the sale is completed,
+     * removing a laptop from it belongs in the Sale's own item list
+     * (SaleItemsRelationManager), which enforces the same draft-only rule.
+     */
+    public static function removeFromSaleAction(): Action
+    {
+        return Action::make('removeFromSale')
+            ->label('Remove from sale')
+            ->icon(Heroicon::OutlinedXCircle)
+            ->color('danger')
+            ->requiresConfirmation()
+            ->modalDescription('This removes the laptop from its sale and returns it to stock.')
+            ->visible(fn (Laptop $record): bool => $record->status === LaptopStatus::Reserved
+                && $record->saleItem !== null
+                && ! $record->saleItem->sale->is_completed)
+            ->action(function (Laptop $record): void {
+                $record->saleItem?->delete();
                 $record->refresh();
             });
     }
@@ -187,11 +209,23 @@ class LaptopsTable
             ->label('Mark job complete')
             ->icon(Heroicon::OutlinedCheckCircle)
             ->color('success')
-            ->requiresConfirmation()
             ->modalDescription('This marks the active repair / repaint job as completed and returns the unit to stock.')
             ->visible(fn (Laptop $record) => $record->activeRepairJob !== null)
-            ->action(function (Laptop $record): void {
-                $record->activeRepairJob?->update(['status' => JobStatus::Completed]);
+            ->schema([
+                RepairJobForm::expenseField(boundToRecord: false, costRequired: true),
+            ])
+            ->fillForm(fn (Laptop $record): array => [
+                'cost' => $record->activeRepairJob?->cost,
+                'cost_currency_id' => $record->activeRepairJob?->cost_currency_id,
+                'cost_exchange_rate' => $record->activeRepairJob?->cost_exchange_rate,
+            ])
+            ->action(function (Laptop $record, array $data): void {
+                $record->activeRepairJob?->update([
+                    'status' => JobStatus::Completed,
+                    'cost' => $data['cost'],
+                    'cost_currency_id' => $data['cost_currency_id'],
+                    'cost_exchange_rate' => $data['cost_exchange_rate'],
+                ]);
                 $record->refresh();
             });
     }
@@ -253,6 +287,22 @@ class LaptopsTable
                 TextColumn::make('status')
                     ->badge()
                     ->sortable(),
+                TextColumn::make('sale_summary')
+                    ->label('Sold / Reserved to')
+                    ->state(function (Laptop $record): ?string {
+                        $saleItem = $record->saleItem;
+
+                        if ($saleItem === null) {
+                            return null;
+                        }
+
+                        $verb = $saleItem->sale->is_completed ? 'Sold to' : 'Reserved to';
+                        $buyer = $saleItem->sale->buyer?->name ?? 'Walk-in buyer';
+
+                        return "{$verb} {$buyer} ({$saleItem->sale->code})";
+                    })
+                    ->placeholder('—')
+                    ->toggleable(),
                 TextColumn::make('purchase_cost')
                     ->label('Purchase cost')
                     ->tooltip('This unit\'s share of its shipment\'s landed cost, in the base currency')
@@ -423,6 +473,7 @@ class LaptopsTable
                 ViewAction::make(),
                 static::printBarcodeAction(),
                 static::addToSaleAction(),
+                static::removeFromSaleAction(),
                 static::sendForJobAction(),
                 static::completeJobAction(),
                 EditAction::make(),

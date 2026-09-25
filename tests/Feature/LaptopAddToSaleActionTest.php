@@ -21,11 +21,11 @@ test('the add to sale action is only visible for in-stock laptops', function () 
         ->assertTableActionHidden('addToSale', $sold);
 });
 
-test('adding a laptop to a sale creates a sale item at the sale\'s currency and marks it sold', function () {
+test('adding a laptop to a draft sale creates a sale item at the sale\'s currency and marks it reserved', function () {
     $user = User::factory()->superAdmin()->create();
     $this->actingAs($user);
 
-    $sale = Sale::factory()->create();
+    $sale = Sale::factory()->create(['is_completed' => false]);
     $laptop = Laptop::factory()->create(['status' => LaptopStatus::InStock]);
 
     Livewire::test(ListLaptops::class)
@@ -38,7 +38,23 @@ test('adding a laptop to a sale creates a sale item at the sale\'s currency and 
 
     expect($item->price_currency_id)->toBe($sale->currency_id)
         ->and($item->price_exchange_rate)->toBe($sale->exchange_rate)
-        ->and($laptop->fresh()->status)->toBe(LaptopStatus::Sold);
+        ->and($laptop->fresh()->status)->toBe(LaptopStatus::Reserved);
+});
+
+test('adding a laptop to an already-completed sale marks it sold, not reserved', function () {
+    $user = User::factory()->superAdmin()->create();
+    $this->actingAs($user);
+
+    $sale = Sale::factory()->create(['is_completed' => true]);
+    $laptop = Laptop::factory()->create(['status' => LaptopStatus::InStock]);
+
+    Livewire::test(ListLaptops::class)
+        ->callTableAction('addToSale', $laptop, data: [
+            'sale_id' => $sale->id,
+        ])
+        ->assertHasNoTableActionErrors();
+
+    expect($laptop->fresh()->status)->toBe(LaptopStatus::Sold);
 });
 
 test('the bulk add to sale action only adds the selected in-stock laptops', function () {

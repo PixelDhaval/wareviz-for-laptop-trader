@@ -71,6 +71,11 @@ class ManageSettings extends Page
                             ),
                             ShipmentCostType::cases(),
                         )),
+                    Section::make('Repair expenses')
+                        ->description('The currency preselected on a repair/repaint job\'s expense.')
+                        ->schema([
+                            static::currencySelect('repair_cost_currency_id', 'repairCostCurrency', 'Repair expense currency'),
+                        ]),
                     Section::make('Fiscal year')
                         ->description('Used to compute the "FY" date formats below (e.g. 25-26). Leave blank to use the calendar year.')
                         ->schema([

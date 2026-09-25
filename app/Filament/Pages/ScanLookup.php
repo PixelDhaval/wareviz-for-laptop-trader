@@ -5,12 +5,12 @@ namespace App\Filament\Pages;
 use App\Enums\JobAssignee;
 use App\Enums\JobStatus;
 use App\Enums\JobType;
+use App\Enums\LaptopStatus;
 use App\Filament\Resources\RepairJobs\Schemas\RepairJobForm;
 use App\Models\Agency;
 use App\Models\Laptop;
 use BackedEnum;
 use Filament\Actions\Action;
-use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\ToggleButtons;
@@ -64,7 +64,9 @@ class ScanLookup extends Page
             ->label('Send for repair')
             ->icon(Heroicon::OutlinedWrenchScrewdriver)
             ->color('warning')
-            ->visible(fn () => $this->laptop && $this->laptop->activeRepairJob === null)
+            ->visible(fn () => $this->laptop
+                && $this->laptop->activeRepairJob === null
+                && $this->laptop->status !== LaptopStatus::Sold)
             ->modalHeading('Send for repair / repaint')
             ->modalSubmitActionLabel('Send')
             ->schema([
@@ -85,10 +87,7 @@ class ScanLookup extends Page
                     ->searchable()
                     ->required(fn ($get) => JobAssignee::resolve($get('assignee')) === JobAssignee::Agency)
                     ->visible(fn ($get) => JobAssignee::resolve($get('assignee')) === JobAssignee::Agency),
-                RepairJobForm::expenseField(boundToRecord: false),
-                DatePicker::make('sent_at')
-                    ->label('Sent on')
-                    ->default(now()),
+                RepairJobForm::sentAtField(),
                 Textarea::make('notes')
                     ->columnSpanFull(),
             ])
@@ -104,11 +103,23 @@ class ScanLookup extends Page
             ->label('Mark job complete')
             ->icon(Heroicon::OutlinedCheckCircle)
             ->color('success')
-            ->requiresConfirmation()
             ->modalDescription('This marks the active repair / repaint job as completed and returns the unit to stock.')
             ->visible(fn () => $this->laptop && $this->laptop->activeRepairJob !== null)
-            ->action(function (): void {
-                $this->laptop->activeRepairJob?->update(['status' => JobStatus::Completed]);
+            ->schema([
+                RepairJobForm::expenseField(boundToRecord: false, costRequired: true),
+            ])
+            ->fillForm(fn (): array => [
+                'cost' => $this->laptop->activeRepairJob?->cost,
+                'cost_currency_id' => $this->laptop->activeRepairJob?->cost_currency_id,
+                'cost_exchange_rate' => $this->laptop->activeRepairJob?->cost_exchange_rate,
+            ])
+            ->action(function (array $data): void {
+                $this->laptop->activeRepairJob?->update([
+                    'status' => JobStatus::Completed,
+                    'cost' => $data['cost'],
+                    'cost_currency_id' => $data['cost_currency_id'],
+                    'cost_exchange_rate' => $data['cost_exchange_rate'],
+                ]);
                 $this->refreshLaptop();
             });
     }

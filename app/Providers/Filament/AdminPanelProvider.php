@@ -27,13 +27,16 @@ class AdminPanelProvider extends PanelProvider
         return $panel
             ->default()
             ->id('admin')
-            ->path('admin')
+            ->path('')
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->login()
             ->spa()
             ->profile()
+            ->brandLogo(asset('images/logo/wareviz_logo_long.svg'))
+            ->brandLogoHeight('2rem')
+            ->favicon(asset('images/logo/favicon.ico'))
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::hex('#3656D1'),
             ])
             ->databaseNotifications()
             ->navigationGroups([

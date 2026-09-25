@@ -7,12 +7,58 @@ use App\Models\Sale;
 use App\Models\SaleItem;
 use Illuminate\Database\QueryException;
 
-test('adding a laptop to a sale marks it as sold', function () {
+test('adding a laptop to a draft sale marks it as reserved', function () {
     $laptop = Laptop::factory()->create(['status' => LaptopStatus::InStock]);
+    $sale = Sale::factory()->create(['is_completed' => false]);
 
-    SaleItem::factory()->for($laptop)->create();
+    SaleItem::factory()->for($sale)->for($laptop)->create();
+
+    expect($laptop->fresh()->status)->toBe(LaptopStatus::Reserved);
+});
+
+test('adding a laptop to an already-completed sale marks it as sold', function () {
+    $laptop = Laptop::factory()->create(['status' => LaptopStatus::InStock]);
+    $sale = Sale::factory()->create(['is_completed' => true]);
+
+    SaleItem::factory()->for($sale)->for($laptop)->create();
 
     expect($laptop->fresh()->status)->toBe(LaptopStatus::Sold);
+});
+
+test('completing a draft sale moves every reserved laptop on it to sold', function () {
+    $sale = Sale::factory()->create(['is_completed' => false]);
+    $laptop = Laptop::factory()->create(['status' => LaptopStatus::InStock]);
+    SaleItem::factory()->for($sale)->for($laptop)->create();
+
+    expect($laptop->fresh()->status)->toBe(LaptopStatus::Reserved);
+
+    $sale->update(['is_completed' => true]);
+
+    expect($laptop->fresh()->status)->toBe(LaptopStatus::Sold);
+});
+
+test('re-opening a completed sale moves its sold laptops back to reserved', function () {
+    $sale = Sale::factory()->create(['is_completed' => true]);
+    $laptop = Laptop::factory()->create(['status' => LaptopStatus::InStock]);
+    SaleItem::factory()->for($sale)->for($laptop)->create();
+
+    expect($laptop->fresh()->status)->toBe(LaptopStatus::Sold);
+
+    $sale->update(['is_completed' => false]);
+
+    expect($laptop->fresh()->status)->toBe(LaptopStatus::Reserved);
+});
+
+test('completing a sale does not touch a laptop that is mid-repair or defective', function () {
+    $sale = Sale::factory()->create(['is_completed' => false]);
+    $laptop = Laptop::factory()->create(['status' => LaptopStatus::InStock]);
+    SaleItem::factory()->for($sale)->for($laptop)->create();
+
+    $laptop->update(['status' => LaptopStatus::InRepair]);
+
+    $sale->update(['is_completed' => true]);
+
+    expect($laptop->fresh()->status)->toBe(LaptopStatus::InRepair);
 });
 
 test('removing a laptop from a sale returns it to stock', function () {

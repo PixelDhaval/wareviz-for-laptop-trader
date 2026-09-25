@@ -124,7 +124,7 @@ class RepairJob extends Model
         }
 
         if ($laptop->status === LaptopStatus::InRepair) {
-            $laptop->update(['status' => LaptopStatus::InStock]);
+            $laptop->update(['status' => $laptop->saleContextStatus()]);
         }
     }
 }

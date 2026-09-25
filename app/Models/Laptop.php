@@ -231,6 +231,27 @@ class Laptop extends Model
         });
     }
 
+    /**
+     * The status this laptop should have based purely on its current sale
+     * engagement: Sold once its sale is completed, Reserved while the sale
+     * is still a draft, or InStock if it isn't on any sale at all. Used to
+     * compute the right status whenever a sale item is added or removed, a
+     * sale's completion is toggled, or a repair job finishes — see
+     * SaleItem::booted(), Sale::booted() and RepairJob::syncLaptopStatus().
+     * Never applied over Defective, which is set manually and independent
+     * of sale state.
+     */
+    public function saleContextStatus(): LaptopStatus
+    {
+        $saleItem = $this->saleItem;
+
+        if ($saleItem === null) {
+            return LaptopStatus::InStock;
+        }
+
+        return $saleItem->sale->is_completed ? LaptopStatus::Sold : LaptopStatus::Reserved;
+    }
+
     private function exactRepairExpenseTotal(): string
     {
         return $this->repairJobs->reduce(

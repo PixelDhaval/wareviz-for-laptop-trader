@@ -28,11 +28,11 @@ test('scanning a laptop opens a confirmation modal with its details', function (
     $this->assertDatabaseCount('sale_items', 0);
 });
 
-test('confirming the price in the modal adds the laptop to the sale and marks it sold', function () {
+test('confirming the price in the modal adds the laptop to the sale and marks it reserved while the sale is a draft', function () {
     $user = User::factory()->superAdmin()->create();
     $this->actingAs($user);
 
-    $sale = Sale::factory()->create();
+    $sale = Sale::factory()->create(['is_completed' => false]);
     $laptop = Laptop::factory()->create(['status' => LaptopStatus::InStock]);
 
     Livewire::test(ScanSale::class, ['record' => $sale->getKey()])
@@ -47,7 +47,7 @@ test('confirming the price in the modal adds the laptop to the sale and marks it
     expect($item->price)->toBe('199.99')
         ->and($item->price_currency_id)->toBe($sale->currency_id)
         ->and($item->price_exchange_rate)->toBe($sale->exchange_rate)
-        ->and($laptop->fresh()->status)->toBe(LaptopStatus::Sold);
+        ->and($laptop->fresh()->status)->toBe(LaptopStatus::Reserved);
 });
 
 test('scanning an unknown code shows an error and opens no modal', function () {

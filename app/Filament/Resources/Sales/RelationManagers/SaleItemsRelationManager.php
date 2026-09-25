@@ -121,12 +121,14 @@ class SaleItemsRelationManager extends RelationManager
             ->recordActions([
                 DeleteAction::make()
                     ->label('Remove')
+                    ->visible(fn (): bool => ! $this->getOwnerRecord()->is_completed)
                     ->authorize(fn (): bool => auth()->user()?->can('update', $this->getOwnerRecord()) ?? false),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
                         ->label('Remove selected')
+                        ->visible(fn (): bool => ! $this->getOwnerRecord()->is_completed)
                         ->authorize(fn (): bool => auth()->user()?->can('update', $this->getOwnerRecord()) ?? false),
                 ]),
             ]);

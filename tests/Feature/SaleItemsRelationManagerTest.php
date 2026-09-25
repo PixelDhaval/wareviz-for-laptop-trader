@@ -68,7 +68,7 @@ test('only in-stock laptops are offered when adding one to a sale', function () 
     expect($item->price)->toBe('150.00')
         ->and($item->price_currency_id)->toBe($sale->currency_id)
         ->and($item->price_exchange_rate)->toBe($sale->exchange_rate)
-        ->and($inStock->fresh()->status)->toBe(LaptopStatus::Sold);
+        ->and($inStock->fresh()->status)->toBe(LaptopStatus::Reserved);
 });
 
 test('a user who can view but not update sales cannot add or remove laptops', function () {

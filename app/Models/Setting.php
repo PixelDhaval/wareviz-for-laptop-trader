@@ -29,6 +29,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'local_expense_currency_id',
     'duty_currency_id',
     'other_expense_currency_id',
+    'repair_cost_currency_id',
     'fiscal_year_start_month',
     'laptop_code_prefix',
     'laptop_code_suffix',
@@ -129,6 +130,14 @@ class Setting extends Model
     public function otherExpenseCurrency(): BelongsTo
     {
         return $this->belongsTo(Currency::class, ShipmentCostType::OtherExpense->currencyColumn());
+    }
+
+    /**
+     * @return BelongsTo<Currency, $this>
+     */
+    public function repairCostCurrency(): BelongsTo
+    {
+        return $this->belongsTo(Currency::class);
     }
 
     /**

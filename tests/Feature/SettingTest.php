@@ -38,3 +38,12 @@ test('shipmentCostCurrencyId resolves the configured currency for each expense t
     expect($setting->shipmentCostCurrencyId(ShipmentCostType::InvoiceValue))->toBe($invoice->id)
         ->and($setting->shipmentCostCurrencyId(ShipmentCostType::FreightCost))->toBeNull();
 });
+
+test('repairCostCurrency resolves the configured default repair expense currency', function () {
+    $currency = Currency::factory()->create();
+
+    $setting = Setting::factory()->create(['repair_cost_currency_id' => $currency->id]);
+
+    expect($setting->repair_cost_currency_id)->toBe($currency->id)
+        ->and($setting->repairCostCurrency->is($currency))->toBeTrue();
+});

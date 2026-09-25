@@ -26,7 +26,11 @@ class SaleItem extends Model
     protected static function booted(): void
     {
         static::created(function (SaleItem $item): void {
-            $item->laptop()->first()?->update(['status' => LaptopStatus::Sold]);
+            $laptop = $item->laptop()->first();
+
+            $laptop?->update([
+                'status' => $item->sale->is_completed ? LaptopStatus::Sold : LaptopStatus::Reserved,
+            ]);
         });
 
         static::deleted(function (SaleItem $item): void {
@@ -37,7 +41,7 @@ class SaleItem extends Model
             // through a different instance in between and revert wrongly.
             $laptop = $item->laptop()->first();
 
-            if ($laptop && $laptop->status === LaptopStatus::Sold) {
+            if ($laptop && in_array($laptop->status, [LaptopStatus::Sold, LaptopStatus::Reserved], true)) {
                 $laptop->update(['status' => LaptopStatus::InStock]);
             }
         });
