@@ -12,6 +12,7 @@ class AgencyForm
     {
         return $schema
             ->columns(2)
+            ->dense()
             ->components([
                 TextInput::make('name')
                     ->required()

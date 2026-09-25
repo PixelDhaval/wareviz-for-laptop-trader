@@ -10,6 +10,7 @@ class ProcessorForm
     public static function configure(Schema $schema): Schema
     {
         return $schema
+            ->dense()
             ->components([
                 TextInput::make('name')
                     ->required()

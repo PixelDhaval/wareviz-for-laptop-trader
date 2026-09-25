@@ -21,15 +21,18 @@ class LaptopForm
     {
         return $schema
             ->columns(1)
+            ->dense()
             ->components([
                 static::identificationSection(),
 
                 Section::make('Specification')
                     ->columns(3)
+                    ->compact()
                     ->schema(static::specificationFields()),
 
                 Section::make('Condition checklist')
                     ->description('Uncheck any part that failed inspection. Notes go in Issues below.')
+                    ->compact()
                     ->schema(static::conditionFields()),
 
                 ToggleButtons::make('status')
@@ -44,6 +47,7 @@ class LaptopForm
     {
         return Section::make('Identification')
             ->columns(2)
+            ->compact()
             ->schema([
                 Select::make('shipment_id')
                     ->relationship('shipment', 'code')

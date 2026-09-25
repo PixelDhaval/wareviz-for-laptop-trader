@@ -35,14 +35,18 @@ class LaptopsRelationManager extends RelationManager
     {
         return $schema
             ->columns(1)
+            ->dense()
             ->components([
                 Section::make('Identification')
                     ->columns(2)
+                    ->compact()
                     ->schema(LaptopForm::identificationFields()),
                 Section::make('Specification')
                     ->columns(3)
+                    ->compact()
                     ->schema(LaptopForm::specificationFields()),
                 Section::make('Condition checklist')
+                    ->compact()
                     ->schema(LaptopForm::conditionFields()),
             ]);
     }

@@ -22,7 +22,7 @@ class InventoryOverview extends StatsOverviewWidget
     {
         $laptopsTrend = $this->monthlyCounts(Laptop::class, 'created_at');
         $shipmentsTrend = $this->monthlyCounts(Shipment::class, 'received_at');
-        $expenseTrend = $this->monthlySum(RepairJob::class, 'created_at', 'cost');
+        $expenseTrend = $this->monthlyRepairExpense();
 
         $inStock = Laptop::query()->where('status', LaptopStatus::InStock)->count();
         $needsAttention = Laptop::query()->where('has_issues', true)->count();
@@ -86,20 +86,24 @@ class InventoryOverview extends StatsOverviewWidget
     }
 
     /**
-     * Sums per month for the last 6 months, oldest first, current month last (index 5).
+     * Repair expense per month for the last 6 months, oldest first, current
+     * month last (index 5), converted to the base currency. Each job's cost
+     * can be in a different currency, so this can't be a SQL sum() over the
+     * raw `cost` column — it sums each month's jobs in PHP instead.
      *
      * @return array<int, float>
      */
-    private function monthlySum(string $model, string $dateColumn, string $sumColumn): array
+    private function monthlyRepairExpense(): array
     {
         return collect(range(5, 0))
-            ->map(function (int $monthsAgo) use ($model, $dateColumn, $sumColumn): float {
+            ->map(function (int $monthsAgo): float {
                 $month = Carbon::now()->subMonthsNoOverflow($monthsAgo);
 
-                return (float) $model::query()
-                    ->whereYear($dateColumn, $month->year)
-                    ->whereMonth($dateColumn, $month->month)
-                    ->sum($sumColumn);
+                return (float) RepairJob::query()
+                    ->whereYear('created_at', $month->year)
+                    ->whereMonth('created_at', $month->month)
+                    ->get()
+                    ->sum(fn (RepairJob $job): string => $job->cost_in_base_currency);
             })
             ->values()
             ->all();

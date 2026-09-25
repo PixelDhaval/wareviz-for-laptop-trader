@@ -4,9 +4,11 @@ use App\Enums\LaptopStatus;
 use App\Models\Laptop;
 
 test('a laptop is assigned a unique sequential asset code on creation', function () {
-    $laptop = Laptop::factory()->create();
+    $first = Laptop::factory()->create();
+    $second = Laptop::factory()->create();
 
-    expect($laptop->asset_code)->toBe(sprintf('WV%06d', $laptop->id));
+    expect($first->asset_code)->toBe('WV000001')
+        ->and($second->asset_code)->toBe('WV000002');
 });
 
 test('has_issues is derived from the issues text', function () {

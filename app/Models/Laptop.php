@@ -4,8 +4,11 @@ namespace App\Models;
 
 use App\Enums\JobStatus;
 use App\Enums\LaptopStatus;
+use App\Support\CodeGenerator;
+use App\Support\Money;
 use Database\Factories\LaptopFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -55,7 +58,7 @@ class Laptop extends Model
 
         static::created(function (Laptop $laptop): void {
             $laptop->forceFill([
-                'asset_code' => sprintf('WV%06d', $laptop->id),
+                'asset_code' => CodeGenerator::forLaptop($laptop),
             ])->saveQuietly();
         });
     }
@@ -136,5 +139,103 @@ class Laptop extends Model
         return $this->hasOne(RepairJob::class)
             ->whereIn('status', [JobStatus::Pending->value, JobStatus::InProgress->value])
             ->latestOfMany();
+    }
+
+    /**
+     * @return HasMany<SaleItem, $this>
+     */
+    public function saleItems(): HasMany
+    {
+        return $this->hasMany(SaleItem::class);
+    }
+
+    /**
+     * The sale this unit was actually sold on, if any. A laptop is only ever
+     * expected to have one — SaleItem creation requires status InStock, so
+     * once sold it can't be scanned into a second sale — but this reads the
+     * latest in case a laptop was ever returned and resold.
+     *
+     * @return HasOne<SaleItem, $this>
+     */
+    public function saleItem(): HasOne
+    {
+        return $this->hasOne(SaleItem::class)->latestOfMany();
+    }
+
+    /**
+     * What this unit cost to land, in the base currency: its shipment's
+     * total cost spread evenly across the shipment's laptops (see
+     * Shipment::averageCostPerLaptop()). Null while that can't be
+     * determined — no shipment, or a shipment with no (non-trashed) laptops.
+     *
+     * @return Attribute<string|null, never>
+     */
+    protected function purchaseCost(): Attribute
+    {
+        return Attribute::get(fn (): ?string => $this->shipment?->average_cost_per_laptop);
+    }
+
+    /**
+     * Every repair/repaint job logged against this unit, converted to the
+     * base currency and summed. Zero when it has none.
+     *
+     * @return Attribute<string, never>
+     */
+    protected function repairExpenseTotal(): Attribute
+    {
+        return Attribute::get(fn (): string => Money::roundToCents($this->exactRepairExpenseTotal()));
+    }
+
+    /**
+     * Purchase cost plus every repair/repaint expense, in the base currency.
+     * Null when the purchase cost can't be determined (see purchaseCost()).
+     *
+     * @return Attribute<string|null, never>
+     */
+    protected function totalCost(): Attribute
+    {
+        return Attribute::get(function (): ?string {
+            if ($this->purchase_cost === null) {
+                return null;
+            }
+
+            return Money::roundToCents(bcadd($this->purchase_cost, $this->exactRepairExpenseTotal(), 8));
+        });
+    }
+
+    /**
+     * What this unit actually sold for, in the base currency. Null while it
+     * hasn't been sold.
+     *
+     * @return Attribute<string|null, never>
+     */
+    protected function salePrice(): Attribute
+    {
+        return Attribute::get(fn (): ?string => $this->saleItem?->price_in_base_currency);
+    }
+
+    /**
+     * Sale price minus total cost, in the base currency. Null while either
+     * side can't be determined yet (not sold, or purchase cost unknown).
+     *
+     * @return Attribute<string|null, never>
+     */
+    protected function profit(): Attribute
+    {
+        return Attribute::get(function (): ?string {
+            if ($this->sale_price === null || $this->total_cost === null) {
+                return null;
+            }
+
+            return Money::roundToCents(bcsub($this->sale_price, $this->total_cost, 8));
+        });
+    }
+
+    private function exactRepairExpenseTotal(): string
+    {
+        return $this->repairJobs->reduce(
+            fn (string $total, RepairJob $job): string => bcadd($total, $job->cost_in_base_currency, 8),
+            '0',
+        );
     }
 }

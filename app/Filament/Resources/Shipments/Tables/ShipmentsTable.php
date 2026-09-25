@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Shipments\Tables;
 
+use App\Models\Currency;
+use App\Support\Money;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -10,6 +12,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -22,6 +25,10 @@ class ShipmentsTable
             ->columns([
                 TextColumn::make('code')
                     ->searchable(),
+                TextColumn::make('supplier.name')
+                    ->label('Supplier')
+                    ->searchable()
+                    ->placeholder('—'),
                 TextColumn::make('name')
                     ->searchable(),
                 TextColumn::make('received_at')
@@ -31,6 +38,17 @@ class ShipmentsTable
                     ->label('Laptops')
                     ->counts('laptops')
                     ->sortable(),
+                TextColumn::make('total_cost')
+                    ->label('Total cost')
+                    ->numeric(decimalPlaces: 2)
+                    ->prefix(fn (): string => Money::currencyPrefix(Currency::base()))
+                    ->tooltip('Invoice value plus all expenses, in the base currency'),
+                TextColumn::make('average_cost_per_laptop')
+                    ->label('Avg cost / laptop')
+                    ->numeric(decimalPlaces: 2)
+                    ->prefix(fn (): string => Money::currencyPrefix(Currency::base()))
+                    ->placeholder('—')
+                    ->tooltip('Total cost divided by the number of laptops'),
                 IconColumn::make('is_completed')
                     ->boolean(),
                 TextColumn::make('created_at')
@@ -43,6 +61,12 @@ class ShipmentsTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                SelectFilter::make('supplier_id')
+                    ->label('Supplier')
+                    ->relationship('supplier', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->multiple(),
                 TernaryFilter::make('is_completed'),
                 TernaryFilter::make('has_laptops')
                     ->label('Has laptops')

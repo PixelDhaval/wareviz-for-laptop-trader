@@ -6,8 +6,10 @@ use App\Enums\JobAssignee;
 use App\Enums\JobStatus;
 use App\Enums\JobType;
 use App\Enums\LaptopStatus;
+use App\Support\Money;
 use Database\Factories\RepairJobFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,6 +20,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'assignee',
     'agency_id',
     'cost',
+    'cost_currency_id',
+    'cost_exchange_rate',
     'status',
     'sent_at',
     'completed_at',
@@ -60,6 +64,7 @@ class RepairJob extends Model
             'assignee' => JobAssignee::class,
             'status' => JobStatus::class,
             'cost' => 'decimal:2',
+            'cost_exchange_rate' => 'decimal:6',
             'sent_at' => 'date',
             'completed_at' => 'date',
         ];
@@ -79,6 +84,27 @@ class RepairJob extends Model
     public function agency(): BelongsTo
     {
         return $this->belongsTo(Agency::class);
+    }
+
+    /**
+     * @return BelongsTo<Currency, $this>
+     */
+    public function currency(): BelongsTo
+    {
+        return $this->belongsTo(Currency::class, 'cost_currency_id');
+    }
+
+    /**
+     * This job's expense converted to the base currency at its own stored
+     * exchange rate — a per-job snapshot, same as a shipment's cost lines
+     * (see App\Models\Shipment::costInBaseCurrency()). Zero when the job has
+     * no expense.
+     *
+     * @return Attribute<string, never>
+     */
+    protected function costInBaseCurrency(): Attribute
+    {
+        return Attribute::get(fn (): string => Money::convert($this->cost, $this->cost_exchange_rate));
     }
 
     protected function syncLaptopStatus(): void

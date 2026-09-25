@@ -1,6 +1,10 @@
 <?php
 
+use App\Enums\ShipmentCostType;
+use App\Models\Currency;
+use App\Models\Shipment;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 /*
@@ -16,6 +20,14 @@ use Tests\TestCase;
 
 pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
+    ->beforeEach(function () {
+        // App\Support\ExchangeRateFetcher makes real outbound HTTP calls.
+        // Failing stray requests here means a test that reaches it must
+        // explicitly Http::fake() its own response, instead of silently
+        // hitting the real network (slow, flaky, and against project
+        // convention — see the isolation testing rule).
+        Http::preventStrayRequests();
+    })
     ->in('Feature');
 
 /*
@@ -47,4 +59,24 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+/**
+ * A shipment with a cost in three currencies, INR being the base. Converted at
+ * each line's own rate the total is 116,400.50 (83,500 + 18,000 + 5,000 +
+ * 1,500.50 + 8,400).
+ */
+function shipmentWithMixedCurrencyCosts(): Shipment
+{
+    $usd = Currency::factory()->create(['code' => 'USD']);
+    $eur = Currency::factory()->create(['code' => 'EUR']);
+    $inr = Currency::factory()->base()->create(['code' => 'INR']);
+
+    return Shipment::factory()
+        ->withCost(ShipmentCostType::InvoiceValue, $usd, '1000.00', '83.5')
+        ->withCost(ShipmentCostType::FreightCost, $eur, '200.00', '90')
+        ->withCost(ShipmentCostType::LocalExpense, $inr, '5000.00', '1')
+        ->withCost(ShipmentCostType::Duty, $inr, '1500.50', '1')
+        ->withCost(ShipmentCostType::OtherExpense, $usd, '100.00', '84')
+        ->create();
 }

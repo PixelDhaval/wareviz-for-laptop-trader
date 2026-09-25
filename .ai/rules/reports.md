@@ -1,0 +1,16 @@
+---
+paths:
+  - 'app/Filament/Pages/Reports/**'
+---
+
+# Reports
+
+## Reports pages: custom Page + HasFiltersForm + widgets, not Dashboard
+Each report under app/Filament/Pages/Reports/*.php is a plain Filament\Pages\Page (auto-discovered — discoverPages() recurses into subdirectories, and page discovery filters by base class, so App\Filament\Pages\Reports\Widgets\* is never picked up even though it's nested under the Pages tree). Every report page `use`s Concerns\HasReportDateRangeFilter, which composes Filament's own Filament\Pages\Dashboard\Concerns\HasFiltersForm trait — that trait is NOT Dashboard-specific despite its namespace; it only needs InteractsWithSchemas, which every page already has via BasePage. The trait overrides content() to render EmbeddedSchema::make('filtersForm') followed by a Grid of getFooterWidgets() (mirroring Filament\Pages\Dashboard::content()'s own composition), so each report page needs no Blade view of its own — the base Page's default view (`filament-panels::pages.page`) already just echoes `$this->content`.
+
+Every widget registered via a report page's getFooterWidgets() must: (1) `use Filament\Widgets\Concerns\InteractsWithPageFilters;` to read `$this->pageFilters` (Filament auto-injects this into ANY widget on ANY page exposing a `filters` property — see Page::getWidgetsSchemaComponents(), not just Dashboard), turning it into `App\Support\Reports\ReportDateRange::fromFilters($this->pageFilters ?? [])`; and (2) set `protected static bool $isLazy = false;` — Filament widgets lazy-load via `x-intersect` by default, which never fires in a Livewire feature test (or below-the-fold on a real page load), so a lazy widget only ever renders a "Loading.." placeholder in `Livewire::test()->assertSee(...)`. This cost real debugging time; don't reintroduce it.
+
+Read-only report tables use Filament\Widgets\TableWidget with `->records(fn (int $page, int $recordsPerPage): LengthAwarePaginator => ...)` returning **array** rows (see the "Custom Data" tables pattern) rather than an Eloquent query, since report rows are computed aggregates. Columns reading a nested/derived value (e.g. `$record['shipment']->code`) must use `->state(fn (array $record) => ...)` explicitly — dot-notation column names only reliably resolve plain top-level array keys, not object properties nested inside an array value.
+
+## Don't render footer widgets in content() — the page template already does
+HasReportDateRangeFilter::content() only adds EmbeddedSchema::make('filtersForm'). Do NOT also add a Grid of getFooterWidgets() there — vendor/filament/filament/resources/views/components/page/index.blade.php unconditionally echoes `{{ $this->footerWidgets }}` (and `{{ $this->headerWidgets }}`) for every page, resolved independently of content(). An earlier version of this trait duplicated that Grid inside content() too, which silently rendered every widget on every report page twice (same data, same HTML, stacked one after another) — caught only because a user visually noticed it; `assertSee()` in tests doesn't catch duplication since it only checks substring presence, not count. If you need to verify this doesn't regress, assert `substr_count($html, ...) === 1` on `Livewire::test($page)->html()`, not just `assertSee()`.

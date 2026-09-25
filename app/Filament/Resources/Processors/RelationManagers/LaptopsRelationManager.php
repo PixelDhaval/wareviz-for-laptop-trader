@@ -32,12 +32,15 @@ class LaptopsRelationManager extends RelationManager
     public function form(Schema $schema): Schema
     {
         return $schema
+            ->dense()
             ->components([
                 LaptopForm::identificationSection(),
                 Section::make('Specification')
                     ->columns(3)
+                    ->compact()
                     ->schema(LaptopForm::specificationFields(includeProcessor: false)),
                 Section::make('Condition checklist')
+                    ->compact()
                     ->schema(LaptopForm::conditionFields()),
             ]);
     }

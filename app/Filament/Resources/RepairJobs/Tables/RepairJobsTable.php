@@ -5,6 +5,9 @@ namespace App\Filament\Resources\RepairJobs\Tables;
 use App\Enums\JobAssignee;
 use App\Enums\JobStatus;
 use App\Enums\JobType;
+use App\Models\Currency;
+use App\Models\RepairJob;
+use App\Support\Money;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -42,8 +45,17 @@ class RepairJobsTable
                 TextColumn::make('cost')
                     ->label('Expense')
                     ->numeric(decimalPlaces: 2)
+                    ->prefix(fn (RepairJob $record): string => Money::currencyPrefix($record->currency))
                     ->placeholder('—')
                     ->sortable(),
+                TextColumn::make('currency.code')
+                    ->label('Currency')
+                    ->placeholder('—'),
+                TextColumn::make('cost_in_base_currency')
+                    ->label('Expense (base)')
+                    ->numeric(decimalPlaces: 2)
+                    ->prefix(fn (): string => Money::currencyPrefix(Currency::base()))
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('status')
                     ->badge()
                     ->sortable(),

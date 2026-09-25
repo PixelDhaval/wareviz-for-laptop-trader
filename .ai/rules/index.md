@@ -6,5 +6,11 @@ Before planning or editing, find the row whose globs match the file's path and r
 | --- | --- |
 | app/Filament/** | .ai/rules/filament.md |
 | app/Filament/Imports/** | .ai/rules/imports.md |
-| app/Models/Laptop.php, app/Models/User.php | .ai/rules/models.md |
+| app/Models/Laptop.php, app/Models/User.php, app/Models/Shipment.php, app/Models/RepairJob.php, app/Models/Sale.php, app/Models/Buyer.php, app/Models/Setting.php | .ai/rules/models.md |
+| app/Models/Setting.php,app/Filament/Pages/ManageSettings.php | .ai/rules/pages.md |
 | app/Filament/**/Tables/**,app/Filament/**/RelationManagers/** | .ai/rules/relation-managers.md |
+| app/Filament/Pages/Reports/** | .ai/rules/reports.md |
+| app/Support/ExchangeRateFetcher.php,app/Filament/Resources/Sales/Schemas/SaleForm.php,app/Filament/Resources/Shipments/Schemas/ShipmentForm.php | .ai/rules/schemas.md |
+| app/Models/Laptop.php,app/Models/Sale.php,app/Support/CodeGenerator.php,app/Models/CodeSequence.php | .ai/rules/support-models.md |
+| app/Support/Reports/** | .ai/rules/support-reports.md |
+| tests/** | .ai/rules/tests.md |

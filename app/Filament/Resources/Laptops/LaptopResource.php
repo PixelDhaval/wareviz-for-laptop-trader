@@ -19,6 +19,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use UnitEnum;
 
@@ -99,6 +100,20 @@ class LaptopResource extends Resource
         return parent::getRecordRouteBindingEloquentQuery()
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
+            ]);
+    }
+
+    /**
+     * Eager loads what Laptop::purchase_cost, repair_expense_total and
+     * total_cost need (the shipment's laptop count, and every repair job's
+     * currency), so the table, view and edit pages don't N+1 per row.
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->with([
+                'shipment' => fn (BelongsTo $query) => $query->withCount('laptops'),
+                'repairJobs.currency',
             ]);
     }
 }

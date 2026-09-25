@@ -2,7 +2,9 @@
 
 namespace App\Filament\Resources\Laptops\Schemas;
 
+use App\Models\Currency;
 use App\Models\Laptop;
+use App\Support\Money;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Grid;
@@ -83,6 +85,26 @@ class LaptopInfolist
                                 IconEntry::make('is_keyboard_ok')->label('Keyboard')->boolean(),
                                 IconEntry::make('is_touchpad_ok')->label('Touchpad')->boolean(),
                             ]),
+                    ]),
+
+                Section::make('Cost')
+                    ->description('In the base currency. Purchase cost is this unit\'s share of its shipment\'s landed cost; repair expense is every job logged against it.')
+                    ->columns(3)
+                    ->schema([
+                        TextEntry::make('purchase_cost')
+                            ->numeric(decimalPlaces: 2)
+                            ->prefix(fn (): string => Money::currencyPrefix(Currency::base()))
+                            ->placeholder('Not yet known'),
+                        TextEntry::make('repair_expense_total')
+                            ->label('Repair expense')
+                            ->numeric(decimalPlaces: 2)
+                            ->prefix(fn (): string => Money::currencyPrefix(Currency::base())),
+                        TextEntry::make('total_cost')
+                            ->label('Total cost')
+                            ->weight('bold')
+                            ->numeric(decimalPlaces: 2)
+                            ->prefix(fn (): string => Money::currencyPrefix(Currency::base()))
+                            ->placeholder('Not yet known'),
                     ]),
             ]);
     }

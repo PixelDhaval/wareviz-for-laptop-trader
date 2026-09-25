@@ -17,18 +17,26 @@ class RepairExpenseByAgencyChart extends ChartWidget
 
     protected function getData(): array
     {
+        // Each job's cost can be in a different currency, so the total per
+        // agency can't be a SQL sum() over the raw `cost` column — it has to
+        // be summed in PHP from each job's cost_in_base_currency.
         $agencies = Agency::query()
-            ->withSum('repairJobs as expense', 'cost')
-            ->orderByDesc('expense')
-            ->limit(7)
-            ->get();
+            ->with('repairJobs')
+            ->get()
+            ->map(fn (Agency $agency): array => [
+                'name' => $agency->name,
+                'expense' => (float) $agency->repairJobs->sum(fn (RepairJob $job): string => $job->cost_in_base_currency),
+            ])
+            ->sortByDesc('expense')
+            ->take(7);
 
         $inHouseExpense = RepairJob::query()
             ->where('assignee', JobAssignee::InHouse)
-            ->sum('cost');
+            ->get()
+            ->sum(fn (RepairJob $job): string => $job->cost_in_base_currency);
 
         $labels = $agencies->pluck('name')->push('In-house')->all();
-        $data = $agencies->pluck('expense')->map(fn ($value) => (float) $value)->push((float) $inHouseExpense)->all();
+        $data = $agencies->pluck('expense')->push((float) $inHouseExpense)->all();
 
         return [
             'datasets' => [

@@ -12,6 +12,8 @@ class LaptopModelForm
     public static function configure(Schema $schema): Schema
     {
         return $schema
+            ->columns(2)
+            ->dense()
             ->components([
                 Select::make('brand_id')
                     ->relationship('brand', 'name')

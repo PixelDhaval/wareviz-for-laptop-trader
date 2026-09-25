@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Enums\JobAssignee;
 use App\Enums\JobStatus;
 use App\Enums\JobType;
+use App\Filament\Resources\RepairJobs\Schemas\RepairJobForm;
 use App\Models\Agency;
 use App\Models\Laptop;
 use BackedEnum;
@@ -12,7 +13,6 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
@@ -85,10 +85,7 @@ class ScanLookup extends Page
                     ->searchable()
                     ->required(fn ($get) => JobAssignee::resolve($get('assignee')) === JobAssignee::Agency)
                     ->visible(fn ($get) => JobAssignee::resolve($get('assignee')) === JobAssignee::Agency),
-                TextInput::make('cost')
-                    ->label('Expense')
-                    ->numeric()
-                    ->minValue(0),
+                RepairJobForm::expenseField(boundToRecord: false),
                 DatePicker::make('sent_at')
                     ->label('Sent on')
                     ->default(now()),
@@ -120,13 +117,14 @@ class ScanLookup extends Page
     {
         return Laptop::query()
             ->with([
-                'shipment',
+                'shipment' => fn ($query) => $query->withCount('laptops'),
                 'brand',
                 'laptopModel',
                 'processor',
                 'generation',
                 'activeRepairJob.agency',
                 'repairJobs.agency',
+                'repairJobs.currency',
             ])
             ->where('asset_code', $code)
             ->first();

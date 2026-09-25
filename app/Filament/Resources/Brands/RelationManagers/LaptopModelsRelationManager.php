@@ -25,6 +25,7 @@ class LaptopModelsRelationManager extends RelationManager
     public function form(Schema $schema): Schema
     {
         return $schema
+            ->dense()
             ->components([
                 TextInput::make('name')
                     ->required()

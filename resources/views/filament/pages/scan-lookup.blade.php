@@ -1,7 +1,11 @@
 @php
     use App\Enums\JobAssignee;
     use App\Filament\Resources\Laptops\LaptopResource;
+    use App\Models\Currency;
+    use App\Support\Money;
     use Filament\Support\Icons\Heroicon;
+
+    $baseCurrencyPrefix = Money::currencyPrefix(Currency::base());
 
     $conditionChecklist = $laptop ? [
         'Battery' => $laptop->is_battery_ok,
@@ -109,6 +113,18 @@
                                 </div>
                             </div>
                         @endif
+                        <div>
+                            <div class="text-gray-500 dark:text-gray-400">Purchase cost</div>
+                            <div class="font-medium">{{ $laptop->purchase_cost !== null ? $baseCurrencyPrefix.number_format((float) $laptop->purchase_cost, 2) : '—' }}</div>
+                        </div>
+                        <div>
+                            <div class="text-gray-500 dark:text-gray-400">Repair expense</div>
+                            <div class="font-medium">{{ $baseCurrencyPrefix.number_format((float) $laptop->repair_expense_total, 2) }}</div>
+                        </div>
+                        <div>
+                            <div class="text-gray-500 dark:text-gray-400">Total cost</div>
+                            <div class="font-medium">{{ $laptop->total_cost !== null ? $baseCurrencyPrefix.number_format((float) $laptop->total_cost, 2) : '—' }}</div>
+                        </div>
                     </div>
 
                     @if ($laptop->activeRepairJob)
@@ -122,7 +138,7 @@
                                     since {{ $laptop->activeRepairJob->sent_at->format('M j, Y') }}
                                 @endif
                                 @if ($laptop->activeRepairJob->cost)
-                                    &middot; Expense: {{ number_format((float) $laptop->activeRepairJob->cost, 2) }}
+                                    &middot; Expense: {{ Money::currencySymbol($laptop->activeRepairJob->currency) }} {{ number_format((float) $laptop->activeRepairJob->cost, 2) }}
                                 @endif
                             </div>
                         </div>
@@ -143,7 +159,7 @@
                                         </span>
                                         <span class="text-gray-500 dark:text-gray-400">{{ $job->sent_at?->format('M j, Y') }}</span>
                                         @if ($job->cost)
-                                            <span class="ms-auto text-gray-500 dark:text-gray-400">{{ number_format((float) $job->cost, 2) }}</span>
+                                            <span class="ms-auto text-gray-500 dark:text-gray-400">{{ Money::currencySymbol($job->currency) }} {{ number_format((float) $job->cost, 2) }}</span>
                                         @endif
                                     </div>
                                 @endforeach

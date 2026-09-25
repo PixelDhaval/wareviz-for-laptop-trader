@@ -6,8 +6,12 @@ use App\Enums\JobAssignee;
 use App\Enums\JobStatus;
 use App\Enums\JobType;
 use App\Enums\LaptopStatus;
+use App\Filament\Resources\RepairJobs\Schemas\RepairJobForm;
 use App\Models\Agency;
+use App\Models\Currency;
 use App\Models\Laptop;
+use App\Models\Sale;
+use App\Support\Money;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
@@ -19,8 +23,8 @@ use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
+use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Section;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
@@ -86,10 +90,7 @@ class LaptopsTable
                     ->searchable()
                     ->required(fn ($get) => JobAssignee::resolve($get('assignee')) === JobAssignee::Agency)
                     ->visible(fn ($get) => JobAssignee::resolve($get('assignee')) === JobAssignee::Agency),
-                TextInput::make('cost')
-                    ->label('Expense')
-                    ->numeric()
-                    ->minValue(0),
+                RepairJobForm::expenseField(boundToRecord: false),
                 DatePicker::make('sent_at')
                     ->label('Sent on')
                     ->default(now()),
@@ -100,6 +101,84 @@ class LaptopsTable
                 $record->repairJobs()->create($data);
                 $record->refresh();
             });
+    }
+
+    public static function addToSaleAction(): Action
+    {
+        return Action::make('addToSale')
+            ->label('Add to sale')
+            ->icon(Heroicon::OutlinedShoppingBag)
+            ->color('success')
+            ->visible(fn (Laptop $record) => $record->status === LaptopStatus::InStock)
+            ->modalHeading('Add to sale')
+            ->schema([
+                static::saleSelect(),
+            ])
+            ->action(function (Laptop $record, array $data): void {
+                $sale = Sale::findOrFail($data['sale_id']);
+
+                $sale->saleItems()->create([
+                    'laptop_id' => $record->id,
+                    'price_currency_id' => $sale->currency_id,
+                    'price_exchange_rate' => $sale->exchange_rate,
+                ]);
+
+                $record->refresh();
+            });
+    }
+
+    public static function addToSaleBulkAction(): BulkAction
+    {
+        return BulkAction::make('addToSale')
+            ->label('Add to sale')
+            ->icon(Heroicon::OutlinedShoppingBag)
+            ->color('success')
+            ->modalHeading('Add to sale')
+            ->schema([
+                static::saleSelect(),
+            ])
+            ->action(function (Collection $records, array $data): void {
+                $sale = Sale::findOrFail($data['sale_id']);
+
+                $eligible = $records->where('status', LaptopStatus::InStock);
+
+                $eligible->each(fn (Laptop $laptop) => $sale->saleItems()->firstOrCreate(
+                    ['laptop_id' => $laptop->id],
+                    [
+                        'price_currency_id' => $sale->currency_id,
+                        'price_exchange_rate' => $sale->exchange_rate,
+                    ],
+                ));
+
+                if ($eligible->count() < $records->count()) {
+                    Notification::make()
+                        ->title('Some laptops were skipped')
+                        ->body('Only in-stock laptops can be added to a sale.')
+                        ->warning()
+                        ->send();
+                }
+            })
+            ->deselectRecordsAfterCompletion();
+    }
+
+    /**
+     * A search-as-you-type select rather than ->options() (which would load
+     * every sale up front — too slow once there are many) or
+     * ->relationship('sale', ...) (this field doesn't correspond to a real
+     * relationship on Laptop — a laptop's sale is reached indirectly via
+     * SaleItem — and per the project's Filament rule, ->relationship()
+     * doesn't reliably dehydrate inside a table row/bulk action's ->schema()
+     * anyway). The query and label logic live on Sale (searchableOptions() /
+     * optionLabel()) so they're reusable and testable outside this Select.
+     */
+    private static function saleSelect(): Select
+    {
+        return Select::make('sale_id')
+            ->label('Sale')
+            ->searchable()
+            ->getSearchResultsUsing(fn (string $search): array => Sale::searchableOptions($search))
+            ->getOptionLabelUsing(fn ($value): ?string => Sale::with('buyer')->find($value)?->optionLabel())
+            ->required();
     }
 
     public static function completeJobAction(): Action
@@ -174,6 +253,26 @@ class LaptopsTable
                 TextColumn::make('status')
                     ->badge()
                     ->sortable(),
+                TextColumn::make('purchase_cost')
+                    ->label('Purchase cost')
+                    ->tooltip('This unit\'s share of its shipment\'s landed cost, in the base currency')
+                    ->numeric(decimalPlaces: 2)
+                    ->prefix(fn (): string => Money::currencyPrefix(Currency::base()))
+                    ->placeholder('—')
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('repair_expense_total')
+                    ->label('Repair expense')
+                    ->tooltip('Every repair/repaint job on this unit, converted to the base currency')
+                    ->numeric(decimalPlaces: 2)
+                    ->prefix(fn (): string => Money::currencyPrefix(Currency::base()))
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('total_cost')
+                    ->label('Total cost')
+                    ->tooltip('Purchase cost plus repair expense, in the base currency')
+                    ->numeric(decimalPlaces: 2)
+                    ->prefix(fn (): string => Money::currencyPrefix(Currency::base()))
+                    ->placeholder('—')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -266,6 +365,11 @@ class LaptopsTable
                 TrashedFilter::make(),
             ], layout: FiltersLayout::AboveContentCollapsible)
             ->filtersFormSchema(fn (array $filters): array => [
+                // Identification and Status & dates are the two shortest
+                // groups, so they share a row instead of each claiming the
+                // full width. Specification and Condition checklist stay
+                // full-width but with wider internal grids (5 filters/row
+                // instead of 3), cutting their own row count too.
                 Section::make('Identification')
                     ->schema([
                         $filters['shipment_id'],
@@ -273,7 +377,17 @@ class LaptopsTable
                         $filters['laptop_model_id'],
                     ])
                     ->columns(3)
-                    ->columnSpanFull(),
+                    ->compact()
+                    ->dense(),
+                Section::make('Status & dates')
+                    ->schema([
+                        $filters['status'],
+                        $filters['created_at'],
+                        $filters['trashed'],
+                    ])
+                    ->columns(4)
+                    ->compact()
+                    ->dense(),
                 Section::make('Specification')
                     ->schema([
                         $filters['processor_id'],
@@ -282,8 +396,10 @@ class LaptopsTable
                         $filters['storage_gb'],
                         $filters['has_builtin_ram'],
                     ])
-                    ->columns(3)
-                    ->columnSpanFull(),
+                    ->columns(5)
+                    ->columnSpanFull()
+                    ->compact()
+                    ->dense(),
                 Section::make('Condition checklist')
                     ->schema([
                         $filters['has_issues'],
@@ -296,28 +412,24 @@ class LaptopsTable
                         $filters['is_keyboard_ok'],
                         $filters['is_touchpad_ok'],
                     ])
-                    ->columns(3)
-                    ->columnSpanFull(),
-                Section::make('Status & dates')
-                    ->schema([
-                        $filters['status'],
-                        $filters['created_at'],
-                        $filters['trashed'],
-                    ])
-                    ->columns(3)
-                    ->columnSpanFull(),
+                    ->columns(5)
+                    ->columnSpanFull()
+                    ->compact()
+                    ->dense(),
             ])
-            ->filtersFormColumns(3)
+            ->filtersFormColumns(2)
             ->deferFilters(false)
             ->recordActions([
                 ViewAction::make(),
                 static::printBarcodeAction(),
+                static::addToSaleAction(),
                 static::sendForJobAction(),
                 static::completeJobAction(),
                 EditAction::make(),
             ])
             ->toolbarActions([
                 static::printBarcodesBulkAction(),
+                static::addToSaleBulkAction(),
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                     ForceDeleteBulkAction::make(),

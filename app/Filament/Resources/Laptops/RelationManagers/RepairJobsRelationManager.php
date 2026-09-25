@@ -5,6 +5,10 @@ namespace App\Filament\Resources\Laptops\RelationManagers;
 use App\Enums\JobAssignee;
 use App\Enums\JobStatus;
 use App\Enums\JobType;
+use App\Filament\Resources\RepairJobs\Schemas\RepairJobForm;
+use App\Models\Currency;
+use App\Models\RepairJob;
+use App\Support\Money;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -34,6 +38,7 @@ class RepairJobsRelationManager extends RelationManager
     {
         return $schema
             ->columns(2)
+            ->dense()
             ->components([
                 ToggleButtons::make('type')
                     ->options(JobType::class)
@@ -53,10 +58,7 @@ class RepairJobsRelationManager extends RelationManager
                     ->preload()
                     ->required(fn ($get) => JobAssignee::resolve($get('assignee')) === JobAssignee::Agency)
                     ->visible(fn ($get) => JobAssignee::resolve($get('assignee')) === JobAssignee::Agency),
-                TextInput::make('cost')
-                    ->label('Expense')
-                    ->numeric()
-                    ->minValue(0),
+                RepairJobForm::expenseField(),
                 ToggleButtons::make('status')
                     ->options(JobStatus::class)
                     ->grouped()
@@ -91,7 +93,16 @@ class RepairJobsRelationManager extends RelationManager
                 TextColumn::make('cost')
                     ->label('Expense')
                     ->numeric(decimalPlaces: 2)
+                    ->prefix(fn (RepairJob $record): string => Money::currencyPrefix($record->currency))
                     ->placeholder('—'),
+                TextColumn::make('currency.code')
+                    ->label('Currency')
+                    ->placeholder('—'),
+                TextColumn::make('cost_in_base_currency')
+                    ->label('Expense (base)')
+                    ->numeric(decimalPlaces: 2)
+                    ->prefix(fn (): string => Money::currencyPrefix(Currency::base()))
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('status')
                     ->badge(),
                 TextColumn::make('sent_at')

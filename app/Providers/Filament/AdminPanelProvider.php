@@ -30,6 +30,8 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->login()
+            ->spa()
+            ->profile()
             ->colors([
                 'primary' => Color::Amber,
             ])
@@ -37,6 +39,7 @@ class AdminPanelProvider extends PanelProvider
             ->navigationGroups([
                 NavigationGroup::make('Inventory'),
                 NavigationGroup::make('Catalog'),
+                NavigationGroup::make('Reports'),
                 NavigationGroup::make('Administration'),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
