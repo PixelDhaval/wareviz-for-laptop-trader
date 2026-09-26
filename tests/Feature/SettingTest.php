@@ -2,6 +2,7 @@
 
 use App\Enums\SaleType;
 use App\Enums\ShipmentCostType;
+use App\Enums\ShipmentType;
 use App\Models\Currency;
 use App\Models\Setting;
 
@@ -37,6 +38,21 @@ test('shipmentCostCurrencyId resolves the configured currency for each expense t
 
     expect($setting->shipmentCostCurrencyId(ShipmentCostType::InvoiceValue))->toBe($invoice->id)
         ->and($setting->shipmentCostCurrencyId(ShipmentCostType::FreightCost))->toBeNull();
+});
+
+test('shipmentCostCurrencyId uses the single local purchase currency for a local-type shipment', function () {
+    $invoice = Currency::factory()->create();
+    $local = Currency::factory()->create();
+
+    $setting = Setting::factory()->create([
+        'invoice_value_currency_id' => $invoice->id,
+        'local_purchase_currency_id' => $local->id,
+    ]);
+
+    expect($setting->shipmentCostCurrencyId(ShipmentCostType::InvoiceValue))->toBe($invoice->id)
+        ->and($setting->shipmentCostCurrencyId(ShipmentCostType::InvoiceValue, ShipmentType::Import))->toBe($invoice->id)
+        ->and($setting->shipmentCostCurrencyId(ShipmentCostType::InvoiceValue, ShipmentType::Local))->toBe($local->id)
+        ->and($setting->shipmentCostCurrencyId(ShipmentCostType::FreightCost, ShipmentType::Local))->toBe($local->id);
 });
 
 test('repairCostCurrency resolves the configured default repair expense currency', function () {

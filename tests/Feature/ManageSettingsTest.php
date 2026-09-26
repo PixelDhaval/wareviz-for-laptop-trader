@@ -28,6 +28,7 @@ test('saving the settings page updates the singleton row', function () {
     $local = Currency::factory()->create();
     $export = Currency::factory()->create();
     $invoice = Currency::factory()->create();
+    $localPurchase = Currency::factory()->create();
 
     $repair = Currency::factory()->create();
 
@@ -36,6 +37,7 @@ test('saving the settings page updates the singleton row', function () {
             'sale_local_currency_id' => $local->id,
             'sale_export_currency_id' => $export->id,
             'invoice_value_currency_id' => $invoice->id,
+            'local_purchase_currency_id' => $localPurchase->id,
             'repair_cost_currency_id' => $repair->id,
         ])
         ->call('save')
@@ -46,6 +48,7 @@ test('saving the settings page updates the singleton row', function () {
     expect($setting->sale_local_currency_id)->toBe($local->id)
         ->and($setting->sale_export_currency_id)->toBe($export->id)
         ->and($setting->invoice_value_currency_id)->toBe($invoice->id)
+        ->and($setting->local_purchase_currency_id)->toBe($localPurchase->id)
         ->and($setting->repair_cost_currency_id)->toBe($repair->id);
 });
 

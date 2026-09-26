@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Shipments\Tables;
 
+use App\Enums\ShipmentType;
 use App\Models\Currency;
 use App\Support\Money;
 use Filament\Actions\BulkActionGroup;
@@ -25,6 +26,9 @@ class ShipmentsTable
             ->columns([
                 TextColumn::make('code')
                     ->searchable(),
+                TextColumn::make('type')
+                    ->badge()
+                    ->sortable(),
                 TextColumn::make('supplier.name')
                     ->label('Supplier')
                     ->searchable()
@@ -61,6 +65,9 @@ class ShipmentsTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                SelectFilter::make('type')
+                    ->options(ShipmentType::class)
+                    ->multiple(),
                 SelectFilter::make('supplier_id')
                     ->label('Supplier')
                     ->relationship('supplier', 'name')

@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Enums\ShipmentCostType;
+use App\Enums\ShipmentType;
 use App\Models\Currency;
 use App\Models\Shipment;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -21,6 +22,7 @@ class ShipmentFactory extends Factory
     {
         return [
             'code' => fake()->unique()->bothify('SHP-####??'),
+            'type' => ShipmentType::Import,
             'name' => fake()->optional()->company(),
             'received_at' => fake()->optional()->date(),
             'is_completed' => false,
@@ -38,6 +40,16 @@ class ShipmentFactory extends Factory
             $type->value => $amount,
             $type->currencyColumn() => $currency->id,
             $type->exchangeRateColumn() => $exchangeRate,
+        ]);
+    }
+
+    /**
+     * Indicate that this is a local purchase.
+     */
+    public function local(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'type' => ShipmentType::Local,
         ]);
     }
 }

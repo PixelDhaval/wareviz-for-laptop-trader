@@ -1,7 +1,7 @@
 <?php
 
-test('the root url redirects to the admin panel', function () {
+test('the root url redirects a guest to the login page', function () {
     $response = $this->get('/');
 
-    $response->assertRedirect('/admin');
+    $response->assertRedirect('/login');
 });

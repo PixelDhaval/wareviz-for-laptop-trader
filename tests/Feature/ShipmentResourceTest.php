@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ShipmentType;
 use App\Filament\Resources\Shipments\Pages\CreateShipment;
 use App\Filament\Resources\Shipments\Pages\EditShipment;
 use App\Filament\Resources\Shipments\Pages\ListShipments;
@@ -44,6 +45,25 @@ test('a super_admin can save a shipment with costs in different currencies', fun
         ->and($shipment->freight_cost_currency_id)->toBe($eur->id)
         ->and($shipment->freight_cost_exchange_rate)->toBe('90.000000')
         ->and($shipment->total_cost)->toBe('101500.00');
+});
+
+test('a shipment defaults to the import type and can be saved as a local purchase', function () {
+    $user = User::factory()->superAdmin()->create();
+    $this->actingAs($user);
+
+    $supplier = Supplier::factory()->create();
+
+    Livewire::test(CreateShipment::class)
+        ->assertFormSet(['type' => ShipmentType::Import])
+        ->fillForm([
+            'code' => 'SHP-LOCAL',
+            'type' => ShipmentType::Local->value,
+            'supplier_id' => $supplier->id,
+        ])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    expect(Shipment::where('code', 'SHP-LOCAL')->firstOrFail()->type)->toBe(ShipmentType::Local);
 });
 
 test('a shipment requires a supplier', function () {
@@ -147,6 +167,29 @@ test('a cost line currency and exchange rate default from settings', function ()
             'invoice_value_currency_id' => $usd->id,
             'invoice_value_exchange_rate' => '83.500000',
             'freight_cost_currency_id' => null,
+        ]);
+});
+
+test('switching to a local purchase defaults every cost line to the single local purchase currency', function () {
+    $user = User::factory()->superAdmin()->create();
+    $this->actingAs($user);
+
+    $usd = Currency::factory()->create(['exchange_rate' => '83.5']);
+    $local = Currency::factory()->create(['exchange_rate' => '1']);
+
+    Setting::factory()->create([
+        'invoice_value_currency_id' => $usd->id,
+        'local_purchase_currency_id' => $local->id,
+    ]);
+
+    Livewire::test(CreateShipment::class)
+        ->assertFormSet(['invoice_value_currency_id' => $usd->id, 'invoice_value_exchange_rate' => '83.500000'])
+        ->set('data.type', ShipmentType::Local->value)
+        ->assertFormSet([
+            'invoice_value_currency_id' => $local->id,
+            'invoice_value_exchange_rate' => '1.000000',
+            'freight_cost_currency_id' => $local->id,
+            'duty_currency_id' => $local->id,
         ]);
 });
 

@@ -4,6 +4,7 @@ Before planning or editing, find the row whose globs match the file's path and r
 
 | Applies to | Rule file |
 | --- | --- |
+| app/Models/Shipment.php,app/Filament/Resources/Shipments/Schemas/ShipmentForm.php,app/Models/Setting.php,app/Filament/Pages/ManageSettings.php | .ai/rules/filament-pages.md |
 | app/Filament/** | .ai/rules/filament.md |
 | app/Filament/Imports/** | .ai/rules/imports.md |
 | app/Providers/Filament/AdminPanelProvider.php,resources/css/filament/admin/theme.css,public/images/logo/** | .ai/rules/logo.md |

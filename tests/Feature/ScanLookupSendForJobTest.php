@@ -60,7 +60,7 @@ test('completing a job via the scan lookup action requires and saves its expense
     $this->actingAs($user);
 
     $laptop = Laptop::factory()->create(['status' => LaptopStatus::InRepair]);
-    $job = RepairJob::factory()->for($laptop)->create(['status' => JobStatus::Pending]);
+    $job = RepairJob::factory()->for($laptop)->create(['status' => JobStatus::Pending, 'cost' => null]);
     $currency = Currency::factory()->create();
 
     Livewire::test(ScanLookup::class)

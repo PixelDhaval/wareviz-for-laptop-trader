@@ -7,6 +7,7 @@ use App\Enums\CodeDateSource;
 use App\Enums\CodeSegmentPosition;
 use App\Enums\SaleType;
 use App\Enums\ShipmentCostType;
+use App\Enums\ShipmentType;
 use Database\Factories\SettingFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -29,6 +30,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'local_expense_currency_id',
     'duty_currency_id',
     'other_expense_currency_id',
+    'local_purchase_currency_id',
     'repair_cost_currency_id',
     'fiscal_year_start_month',
     'laptop_code_prefix',
@@ -135,6 +137,14 @@ class Setting extends Model
     /**
      * @return BelongsTo<Currency, $this>
      */
+    public function localPurchaseCurrency(): BelongsTo
+    {
+        return $this->belongsTo(Currency::class);
+    }
+
+    /**
+     * @return BelongsTo<Currency, $this>
+     */
     public function repairCostCurrency(): BelongsTo
     {
         return $this->belongsTo(Currency::class);
@@ -154,10 +164,16 @@ class Setting extends Model
 
     /**
      * The default currency id to preselect on the Shipment form for this
-     * cost line, or null if none is configured.
+     * cost line, or null if none is configured. A local purchase uses one
+     * single currency (`local_purchase_currency_id`) for every cost line,
+     * instead of each line's own per-type setting.
      */
-    public function shipmentCostCurrencyId(ShipmentCostType $type): ?int
+    public function shipmentCostCurrencyId(ShipmentCostType $type, ?ShipmentType $shipmentType = null): ?int
     {
+        if ($shipmentType === ShipmentType::Local) {
+            return $this->local_purchase_currency_id;
+        }
+
         return $this->{$type->currencyColumn()};
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Shipments\Schemas;
 
 use App\Enums\ShipmentCostType;
+use App\Enums\ShipmentType;
 use App\Filament\Resources\Suppliers\Schemas\SupplierForm;
 use App\Models\Currency;
 use App\Models\Setting;
@@ -15,6 +16,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\ToggleButtons;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\FusedGroup;
 use Filament\Schemas\Components\Grid;
@@ -37,6 +39,13 @@ class ShipmentForm
                     ->label('Shipment / container code')
                     ->required()
                     ->unique(ignoreRecord: true),
+                ToggleButtons::make('type')
+                    ->options(ShipmentType::class)
+                    ->grouped()
+                    ->required()
+                    ->live()
+                    ->default(ShipmentType::Import)
+                    ->afterStateUpdated(fn (Get $get, Set $set) => static::refreshAllCostCurrencies($get, $set)),
                 Select::make('supplier_id')
                     ->label('Supplier')
                     ->relationship('supplier', 'name')
@@ -91,7 +100,7 @@ class ShipmentForm
         $rateField = $type->exchangeRateColumn();
 
         $hasAmount = fn (Get $get): bool => (float) $get($amountField) > 0;
-        $defaultCurrencyId = Setting::current()->shipmentCostCurrencyId($type);
+        $defaultCurrencyId = fn (Get $get): ?int => static::defaultCostCurrencyId($type, $get);
 
         return FusedGroup::make([
             TextInput::make($amountField)
@@ -120,11 +129,36 @@ class ShipmentForm
                 ->required($hasAmount)
                 ->live(onBlur: true)
                 ->helperText('Auto-filled from the historical rate on the invoice date when available.')
-                ->default(fn (): ?string => Currency::find($defaultCurrencyId)?->exchange_rate)
+                ->default(fn (Get $get): ?string => Currency::find($defaultCurrencyId($get))?->exchange_rate)
                 ->dehydrateStateUsing(fn (mixed $state): mixed => filled($state) ? $state : 1),
         ])
             ->label($type->getLabel())
             ->columns(4);
+    }
+
+    /**
+     * The default currency id to preselect on a cost line, per the
+     * shipment's own type (a local purchase uses one single currency for
+     * every line; an import purchase uses each line's own setting).
+     */
+    private static function defaultCostCurrencyId(ShipmentCostType $type, Get $get): ?int
+    {
+        return Setting::current()->shipmentCostCurrencyId($type, ShipmentType::resolve($get('type')));
+    }
+
+    /**
+     * Re-applies each cost line's currency default (and exchange rate) for
+     * the shipment's now-current type. Used when `type` changes, since a
+     * local purchase's currency default differs from an import's.
+     */
+    private static function refreshAllCostCurrencies(Get $get, Set $set): void
+    {
+        foreach (ShipmentCostType::cases() as $type) {
+            $currencyId = static::defaultCostCurrencyId($type, $get);
+
+            $set($type->currencyColumn(), $currencyId);
+            static::updateCostExchangeRate($type, $get, $set, $currencyId);
+        }
     }
 
     /**

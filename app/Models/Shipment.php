@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ShipmentCostType;
+use App\Enums\ShipmentType;
 use App\Support\Money;
 use Database\Factories\ShipmentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'code',
+    'type',
     'supplier_id',
     'name',
     'received_at',
@@ -47,6 +49,7 @@ class Shipment extends Model
     protected function casts(): array
     {
         $casts = [
+            'type' => ShipmentType::class,
             'received_at' => 'date',
             'invoice_date' => 'date',
             'is_completed' => 'boolean',

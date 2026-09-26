@@ -61,7 +61,7 @@ class ManageSettings extends Page
                             static::currencySelect('sale_export_currency_id', 'saleExportCurrency', 'Export sale currency'),
                         ]),
                     Section::make('Purchase expenses')
-                        ->description('The currency preselected on each shipment cost line.')
+                        ->description('The currency preselected on each shipment cost line for import purchases.')
                         ->columns(2)
                         ->schema(array_map(
                             fn (ShipmentCostType $type): Select => static::currencySelect(
@@ -71,6 +71,11 @@ class ManageSettings extends Page
                             ),
                             ShipmentCostType::cases(),
                         )),
+                    Section::make('Local purchases')
+                        ->description('The single currency preselected on every cost line of a local-type shipment.')
+                        ->schema([
+                            static::currencySelect('local_purchase_currency_id', 'localPurchaseCurrency', 'Local purchase currency'),
+                        ]),
                     Section::make('Repair expenses')
                         ->description('The currency preselected on a repair/repaint job\'s expense.')
                         ->schema([
