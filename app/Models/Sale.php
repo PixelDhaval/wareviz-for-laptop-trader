@@ -6,6 +6,7 @@ use App\Enums\LaptopStatus;
 use App\Enums\SaleType;
 use App\Support\CodeGenerator;
 use App\Support\Money;
+use BokshornIt\FilamentActivityTimeline\Contracts\ProvidesActivityTitle;
 use Database\Factories\SaleFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -14,6 +15,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 #[Fillable([
     'code',
@@ -27,10 +30,23 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'is_completed',
     'notes',
 ])]
-class Sale extends Model
+class Sale extends Model implements ProvidesActivityTitle
 {
     /** @use HasFactory<SaleFactory> */
-    use HasFactory;
+    use HasFactory, LogsActivity;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges();
+    }
+
+    public function activityTitle(): ?string
+    {
+        return $this->code;
+    }
 
     protected static function booted(): void
     {

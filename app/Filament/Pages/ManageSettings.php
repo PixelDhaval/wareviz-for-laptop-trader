@@ -8,6 +8,7 @@ use App\Enums\CodeSegmentPosition;
 use App\Enums\ShipmentCostType;
 use App\Models\Setting;
 use BackedEnum;
+use BokshornIt\FilamentActivityTimeline\Actions\ActivityTimelineAction;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -46,6 +47,13 @@ class ManageSettings extends Page
     public function mount(): void
     {
         $this->form->fill($this->getRecord()->attributesToArray());
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            ActivityTimelineAction::make(),
+        ];
     }
 
     public function form(Schema $schema): Schema

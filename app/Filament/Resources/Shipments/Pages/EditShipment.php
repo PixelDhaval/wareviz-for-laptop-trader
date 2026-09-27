@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Shipments\Pages;
 
 use App\Filament\Resources\Shipments\ShipmentResource;
+use BokshornIt\FilamentActivityTimeline\Actions\ActivityTimelineAction;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 
@@ -13,6 +14,7 @@ class EditShipment extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            ActivityTimelineAction::make(),
             DeleteAction::make(),
         ];
     }

@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\ShipmentCostType;
 use App\Enums\ShipmentType;
 use App\Support\Money;
+use BokshornIt\FilamentActivityTimeline\Contracts\ProvidesActivityTitle;
 use Database\Factories\ShipmentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -12,6 +13,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 #[Fillable([
     'code',
@@ -38,10 +41,35 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'other_expense_currency_id',
     'other_expense_exchange_rate',
 ])]
-class Shipment extends Model
+class Shipment extends Model implements ProvidesActivityTitle
 {
     /** @use HasFactory<ShipmentFactory> */
-    use HasFactory;
+    use HasFactory, LogsActivity;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges();
+    }
+
+    protected static function booted(): void
+    {
+        static::created(function (Shipment $shipment): void {
+            // The cost columns default at the DB level (0 / exchange rate 1)
+            // when not given explicitly. Without a refresh, the in-memory
+            // instance keeps them null, so the first later update() logs a
+            // phantom "changed from null" for every one of them (activitylog's
+            // logOnlyDirty() diffs against this instance's stale original).
+            $shipment->refresh();
+        });
+    }
+
+    public function activityTitle(): ?string
+    {
+        return $this->code;
+    }
 
     /**
      * @return array<string, string>

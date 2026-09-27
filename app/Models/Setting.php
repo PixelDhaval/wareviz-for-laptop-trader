@@ -8,11 +8,14 @@ use App\Enums\CodeSegmentPosition;
 use App\Enums\SaleType;
 use App\Enums\ShipmentCostType;
 use App\Enums\ShipmentType;
+use BokshornIt\FilamentActivityTimeline\Contracts\ProvidesActivityTitle;
 use Database\Factories\SettingFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 /**
  * A singleton row of application-wide defaults: which currency to preselect
@@ -46,10 +49,23 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'sale_code_date_position',
     'sale_code_sequence_pad',
 ])]
-class Setting extends Model
+class Setting extends Model implements ProvidesActivityTitle
 {
     /** @use HasFactory<SettingFactory> */
-    use HasFactory;
+    use HasFactory, LogsActivity;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges();
+    }
+
+    public function activityTitle(): ?string
+    {
+        return 'Application settings';
+    }
 
     /**
      * firstOrCreate() on a brand-new row leaves the in-memory instance

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Sales\Pages;
 
 use App\Filament\Resources\Sales\SaleResource;
+use BokshornIt\FilamentActivityTimeline\Actions\ActivityTimelineAction;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
@@ -15,6 +16,8 @@ class ViewSale extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            ActivityTimelineAction::make()
+                ->withRelations(['saleItems']),
             Action::make('scan')
                 ->label('Scan laptops')
                 ->icon(Heroicon::OutlinedQrCode)

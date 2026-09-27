@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "7400663bb3cf4f234117240c29488513",
+    "content-hash": "89bc97605d63995f35f20f0eee909592",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -393,6 +393,74 @@
                 }
             ],
             "time": "2026-06-30T09:44:12+00:00"
+        },
+        {
+            "name": "bokshorn-it/filament-activity-timeline",
+            "version": "v1.4.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/Bokshorn-IT/filament-activity-timeline.git",
+                "reference": "38829a9d4e22c227d1cd9dbe70159baeaf1251ae"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/Bokshorn-IT/filament-activity-timeline/zipball/38829a9d4e22c227d1cd9dbe70159baeaf1251ae",
+                "reference": "38829a9d4e22c227d1cd9dbe70159baeaf1251ae",
+                "shasum": ""
+            },
+            "require": {
+                "filament/filament": "^5.0",
+                "illuminate/contracts": "^12.0|^13.0",
+                "php": "^8.3",
+                "spatie/laravel-activitylog": "^4.12|^5.0",
+                "spatie/laravel-package-tools": "^1.92"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.27",
+                "orchestra/testbench": "^10.0|^11.0",
+                "pestphp/pest": "^4.0",
+                "pestphp/pest-plugin-laravel": "^4.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "BokshornIt\\FilamentActivityTimeline\\FilamentActivityTimelineServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "BokshornIt\\FilamentActivityTimeline\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Johannes Bokshorn",
+                    "role": "Developer"
+                }
+            ],
+            "description": "A Filament plugin that turns spatie/laravel-activitylog into a readable audit trail: a record timeline, a filterable activity resource, and diffs that resolve enums, dates and foreign keys to human labels.",
+            "homepage": "https://bokshorn.it",
+            "keywords": [
+                "activitylog",
+                "audit-trail",
+                "filament",
+                "filament-plugin",
+                "filamentphp",
+                "laravel",
+                "timeline"
+            ],
+            "support": {
+                "issues": "https://github.com/Bokshorn-IT/filament-activity-timeline/issues",
+                "security": "https://github.com/Bokshorn-IT/filament-activity-timeline/security/policy",
+                "source": "https://github.com/Bokshorn-IT/filament-activity-timeline"
+            },
+            "time": "2026-09-22T08:35:56+00:00"
         },
         {
             "name": "brick/math",
@@ -5377,6 +5445,99 @@
                 }
             ],
             "time": "2026-08-24T12:39:05+00:00"
+        },
+        {
+            "name": "spatie/laravel-activitylog",
+            "version": "5.1.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/spatie/laravel-activitylog.git",
+                "reference": "8ce56d3b9d72f4e4551f4449d236a5ed06e71667"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/spatie/laravel-activitylog/zipball/8ce56d3b9d72f4e4551f4449d236a5ed06e71667",
+                "reference": "8ce56d3b9d72f4e4551f4449d236a5ed06e71667",
+                "shasum": ""
+            },
+            "require": {
+                "illuminate/config": "^12.0 || ^13.0",
+                "illuminate/database": "^12.0 || ^13.0",
+                "illuminate/support": "^12.0 || ^13.0",
+                "php": "^8.4",
+                "spatie/laravel-package-tools": "^1.6.3"
+            },
+            "require-dev": {
+                "ext-json": "*",
+                "larastan/larastan": "^3.0",
+                "laravel/pint": "^1.29",
+                "orchestra/testbench": "^10.0 || ^11.0",
+                "pestphp/pest": "^4.0 || ^5.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Spatie\\Activitylog\\ActivitylogServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "files": [
+                    "src/helpers.php"
+                ],
+                "psr-4": {
+                    "Spatie\\Activitylog\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Freek Van der Herten",
+                    "email": "freek@spatie.be",
+                    "homepage": "https://spatie.be",
+                    "role": "Developer"
+                },
+                {
+                    "name": "Sebastian De Deyne",
+                    "email": "sebastian@spatie.be",
+                    "homepage": "https://spatie.be",
+                    "role": "Developer"
+                },
+                {
+                    "name": "Tom Witkowski",
+                    "email": "dev.gummibeer@gmail.com",
+                    "homepage": "https://gummibeer.de",
+                    "role": "Developer"
+                }
+            ],
+            "description": "A very simple activity logger to monitor the users of your website or application",
+            "homepage": "https://github.com/spatie/laravel-activitylog",
+            "keywords": [
+                "activity",
+                "laravel",
+                "log",
+                "spatie",
+                "user"
+            ],
+            "support": {
+                "issues": "https://github.com/spatie/laravel-activitylog/issues",
+                "source": "https://github.com/spatie/laravel-activitylog/tree/5.1.1"
+            },
+            "funding": [
+                {
+                    "url": "https://spatie.be/open-source/support-us",
+                    "type": "custom"
+                },
+                {
+                    "url": "https://github.com/spatie",
+                    "type": "github"
+                }
+            ],
+            "time": "2026-09-08T12:16:25+00:00"
         },
         {
             "name": "spatie/laravel-package-tools",

@@ -6,6 +6,7 @@ use App\Enums\JobStatus;
 use App\Enums\LaptopStatus;
 use App\Support\CodeGenerator;
 use App\Support\Money;
+use BokshornIt\FilamentActivityTimeline\Contracts\ProvidesActivityTitle;
 use Database\Factories\LaptopFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -16,6 +17,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 #[Fillable([
     'shipment_id',
@@ -40,10 +43,23 @@ use Illuminate\Support\Str;
     'issues',
     'status',
 ])]
-class Laptop extends Model
+class Laptop extends Model implements ProvidesActivityTitle
 {
     /** @use HasFactory<LaptopFactory> */
-    use HasFactory, SoftDeletes;
+    use HasFactory, LogsActivity, SoftDeletes;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges();
+    }
+
+    public function activityTitle(): ?string
+    {
+        return $this->asset_code;
+    }
 
     protected static function booted(): void
     {

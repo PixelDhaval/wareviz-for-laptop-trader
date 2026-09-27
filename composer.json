@@ -8,10 +8,12 @@
     "require": {
         "php": "^8.3",
         "bezhansalleh/filament-shield": "^4.3",
+        "bokshorn-it/filament-activity-timeline": "^1.4",
         "filament/filament": "^5.7",
         "laravel/framework": "^13.17",
         "laravel/tinker": "^3.0",
-        "picqer/php-barcode-generator": "^3.3"
+        "picqer/php-barcode-generator": "^3.3",
+        "spatie/laravel-activitylog": "^5.1"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

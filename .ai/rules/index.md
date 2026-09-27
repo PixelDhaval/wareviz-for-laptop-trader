@@ -15,6 +15,7 @@ Before planning or editing, find the row whose globs match the file's path and r
 | app/Filament/Resources/RepairJobs/Schemas/RepairJobForm.php | .ai/rules/repair-jobs-schemas.md |
 | app/Filament/Pages/Reports/** | .ai/rules/reports.md |
 | app/Support/ExchangeRateFetcher.php,app/Filament/Resources/Sales/Schemas/SaleForm.php,app/Filament/Resources/Shipments/Schemas/ShipmentForm.php | .ai/rules/schemas.md |
+| app/Models/*.php,app/Policies/ActivityPolicy.php,app/Providers/AppServiceProvider.php,database/seeders/ShieldSeeder.php | .ai/rules/seeders.md |
 | app/Models/Laptop.php,app/Models/Sale.php,app/Support/CodeGenerator.php,app/Models/CodeSequence.php | .ai/rules/support-models.md |
 | app/Support/Reports/** | .ai/rules/support-reports.md |
 | tests/** | .ai/rules/tests.md |

@@ -7,12 +7,15 @@ use App\Enums\JobStatus;
 use App\Enums\JobType;
 use App\Enums\LaptopStatus;
 use App\Support\Money;
+use BokshornIt\FilamentActivityTimeline\Contracts\ProvidesActivityTitle;
 use Database\Factories\RepairJobFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 #[Fillable([
     'laptop_id',
@@ -27,10 +30,27 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'completed_at',
     'notes',
 ])]
-class RepairJob extends Model
+class RepairJob extends Model implements ProvidesActivityTitle
 {
     /** @use HasFactory<RepairJobFactory> */
-    use HasFactory;
+    use HasFactory, LogsActivity;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges();
+    }
+
+    public function activityTitle(): ?string
+    {
+        if (! $this->laptop_id) {
+            return null;
+        }
+
+        return "{$this->laptop?->asset_code} ({$this->type?->getLabel()})";
+    }
 
     protected static function booted(): void
     {
@@ -51,6 +71,16 @@ class RepairJob extends Model
 
         static::saved(function (RepairJob $job): void {
             $job->syncLaptopStatus();
+        });
+
+        static::created(function (RepairJob $job): void {
+            // cost_exchange_rate defaults to 1 at the DB level when not given
+            // explicitly. Without a refresh, the in-memory instance keeps it
+            // null, so the first later update() logs a phantom "changed from
+            // null" (activitylog's logOnlyDirty() diffs against this
+            // instance's stale original) — see Shipment::booted() for the
+            // same fix.
+            $job->refresh();
         });
     }
 

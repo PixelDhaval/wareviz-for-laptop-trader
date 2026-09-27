@@ -4,12 +4,15 @@ namespace App\Models;
 
 use App\Enums\LaptopStatus;
 use App\Support\Money;
+use BokshornIt\FilamentActivityTimeline\Contracts\ProvidesActivityTitle;
 use Database\Factories\SaleItemFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 #[Fillable([
     'sale_id',
@@ -18,10 +21,27 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'price_currency_id',
     'price_exchange_rate',
 ])]
-class SaleItem extends Model
+class SaleItem extends Model implements ProvidesActivityTitle
 {
     /** @use HasFactory<SaleItemFactory> */
-    use HasFactory;
+    use HasFactory, LogsActivity;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges();
+    }
+
+    public function activityTitle(): ?string
+    {
+        if (! $this->laptop_id || ! $this->sale_id) {
+            return null;
+        }
+
+        return "{$this->laptop?->asset_code} on {$this->sale?->code}";
+    }
 
     protected static function booted(): void
     {
